@@ -29,7 +29,14 @@ app.get('/api/playurl', (req, res) => {
         apiRes.on('end', () => {
             res.setHeader('Content-Type', 'application/json');
             res.send(decodeUnicode(data));
-            console.log(decodeUnicode(data));
+            const now = new Date();
+
+            // 格式化时间为 YYYY-MM-DD HH:mm:ss
+            const formattedDate = now.toISOString().replace('T', ' ').substring(0, 19).replace(/-/g, '-');
+
+            // 输出到控制台
+            console.log(`当前时间：${formattedDate}  `+`${bvid}`);
+            //console.log(decodeUnicode(data));
         });
 
     }).on('error', (err) => {

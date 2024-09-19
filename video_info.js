@@ -1,27 +1,34 @@
 // JavaScript source code
-// ÒýÈëËùÐèÄ£¿é
+// å¼•å…¥æ‰€éœ€æ¨¡å—
 const express = require('express');
 const axios = require('axios');
 
 const app = express();
 const PORT = 3000;
 
-// ¶¨ÒåÒª»ñÈ¡µÄ API URL
-const API_URL = 'https://api.bilibili.com/x/web-interface/view'; // Ìæ»»ÎªÊµ¼ÊµÄ API URL
+// å®šä¹‰è¦èŽ·å–çš„ API URL
+const API_URL = 'https://api.bilibili.com/x/web-interface/view'; // æ›¿æ¢ä¸ºå®žé™…çš„ API URL
 
-// ´´½¨Ò»¸öÂ·ÓÉÀ´´¦ÀíÇëÇó
+// åˆ›å»ºä¸€ä¸ªè·¯ç”±æ¥å¤„ç†è¯·æ±‚
 app.get('/view', async (req, res) => {
-    // ´Ó²éÑ¯²ÎÊýÖÐ»ñÈ¡²ÎÊý
-    const { bvid } = req.query; // ¼ÙÉèÄãÒª´«µÝµÄ²ÎÊýÃûÎª 'param'
+    // ä»ŽæŸ¥è¯¢å‚æ•°ä¸­èŽ·å–å‚æ•°
+    const { bvid } = req.query; // å‡è®¾ä½ è¦ä¼ é€’çš„å‚æ•°åä¸º 'param'
 
     if (!bvid) {
         return res.status(400).send('Missing parameter: bvid');
     }
 
     try {
-        // Ê¹ÓÃ²ÎÊý¹¹½¨ API ÇëÇó
+        // ä½¿ç”¨å‚æ•°æž„å»º API è¯·æ±‚
         const response = await axios.get(`${API_URL}?bvid=${bvid}`);
-        // ×ª·¢Êý¾Ýµ½¿Í»§¶Ë
+        // è½¬å‘æ•°æ®åˆ°å®¢æˆ·ç«¯
+            const now = new Date();
+
+            // æ ¼å¼åŒ–æ—¶é—´ä¸º YYYY-MM-DD HH:mm:ss
+            const formattedDate = now.toISOString().replace('T', ' ').substring(0, 19).replace(/-/g, '-');
+
+            // è¾“å‡ºåˆ°æŽ§åˆ¶å°
+            console.log(`å½“å‰æ—¶é—´ï¼š${formattedDate}  `+`${bvid}`);
         res.json(response.data);
     } catch (error) {
         console.error('Error fetching data:', error);
@@ -29,7 +36,7 @@ app.get('/view', async (req, res) => {
     }
 });
 
-// Æô¶¯·þÎñÆ÷
+// å¯åŠ¨æœåŠ¡å™¨
 app.listen(PORT, () => {
     console.log(`Server is running on http://localhost:${PORT}`);
 });
