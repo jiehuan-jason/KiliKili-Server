@@ -7,7 +7,46 @@ const app = express();
 const PORT = 3000;
 
 // 定义要获取的 API URL
-const API_URL = 'https://api.bilibili.com/x/web-interface/view'; // 替换为实际的 API URL
+const API_INFO_URL = 'https://api.bilibili.com/x/web-interface/view'; // 替换为实际的 API URL
+const API_SEARCH_URL = 'https://api.bilibili.com/x/web-interface/search/type';
+
+const COOKIES = [
+    ];
+
+async function getCookies() {
+    try {
+        const response = await axios.get('https://bilibili.com', {
+            // 允许 axios 自动处理 cookies
+            withCredentials: true,
+        });
+
+        // 获取响应中的 cookies
+        const cookies = response.headers['set-cookie'];
+        console.log('获取到的 cookies:', cookies);
+        return cookies;
+    } catch (error) {
+        console.error(`请求错误: ${error.message}`);
+        return 'error';
+    }
+}
+
+// 第二个请求：使用获取到的 cookies 访问另一个网址
+async function accessWithCookies(cookies,url) {
+    try {
+        const response = await axios.get(url, {
+            headers: {
+                Cookie: cookies.join('; '), // 将 cookies 以字符串形式设置
+            },
+        });
+        
+        //console.log('第二个请求的响应数据:', response.data);
+        return response.data;
+    } catch (error) {
+        console.error(`请求错误: ${error.message}`);
+        return 'error';
+    }
+}
+
 
 // 创建一个路由来处理请求
 app.get('/view', async (req, res) => {
@@ -20,7 +59,7 @@ app.get('/view', async (req, res) => {
 
     try {
         // 使用参数构建 API 请求
-        const response = await axios.get(`${API_URL}?bvid=${bvid}`);
+        const response = await axios.get(`${API_INFO_URL}?bvid=${bvid}`);
         // 转发数据到客户端
             const now = new Date();
 
@@ -28,8 +67,39 @@ app.get('/view', async (req, res) => {
             const formattedDate = now.toISOString().replace('T', ' ').substring(0, 19).replace(/-/g, '-');
 
             // 输出到控制台
-            console.log(`当前时间：${formattedDate}  `+`${bvid}`);
+            console.log(`视频信息 当前时间：${formattedDate}  `+`${bvid}`);
         res.json(response.data);
+    } catch (error) {
+        console.error('Error fetching data:', error);
+        res.status(500).send('Error fetching data');
+    }
+});
+
+// 创建一个路由来处理请求
+app.get('/search', async (req, res) => {
+    // 从查询参数中获取参数
+    const { keyword } = req.query; // 假设你要传递的参数名为 'param'
+
+    if (!keyword) {
+        return res.status(400).send('Missing parameter: keyword');
+    }
+
+    try {
+        // 使用参数构建 API 请求
+         //const cookies = await getCookies();
+            if (COOKIES) {
+                data = await accessWithCookies(COOKIES,`${API_SEARCH_URL}?keyword=${keyword}&search_type=video`);
+                const now = new Date();
+
+            // 格式化时间为 YYYY-MM-DD HH:mm:ss
+                 const formattedDate = now.toISOString().replace('T', ' ').substring(0, 19).replace(/-/g, '-');
+
+            // 输出到控制台
+                console.log(`搜索 当前时间：${formattedDate}  `+`${keyword}`);
+                res.json(data);
+            }
+        // 转发数据到客户端
+            
     } catch (error) {
         console.error('Error fetching data:', error);
         res.status(500).send('Error fetching data');
