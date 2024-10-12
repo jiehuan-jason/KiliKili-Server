@@ -9,6 +9,7 @@ const PORT = 3000;
 // 定义要获取的 API URL
 const API_INFO_URL = 'https://api.bilibili.com/x/web-interface/view'; // 替换为实际的 API URL
 const API_SEARCH_URL = 'https://api.bilibili.com/x/web-interface/search/type';
+const API_USER_URL = 'https://api.bilibili.com/x/web-interface/card';
 
 const COOKIES = [
     ];
@@ -47,6 +48,7 @@ async function accessWithCookies(cookies,url) {
     }
 }
 
+console.log(getCookies());
 
 // 创建一个路由来处理请求
 app.get('/view', async (req, res) => {
@@ -88,14 +90,49 @@ app.get('/search', async (req, res) => {
         // 使用参数构建 API 请求
          //const cookies = await getCookies();
             if (COOKIES) {
-                data = await accessWithCookies(COOKIES,`${API_SEARCH_URL}?keyword=${keyword}&search_type=video`);
+                const buffer_text = Buffer.from(keyword, 'latin1');
+
+                const correct_keyword = buffer_text.toString('utf8');
+                data = await accessWithCookies(COOKIES,`${API_SEARCH_URL}?keyword=${correct_keyword}&search_type=video`);
+                const now = new Date();
+
+            // 格式化时间为 YYYY-MM-DD HH:mm:ss
+                 const formattedDate = now.toISOString().replace('T', ' ').substring(0, 19).replace(/-/g, '-');
+
+                
+
+            // 输出到控制台
+                console.log(`搜索 当前时间：${formattedDate}  `+`${correct_keyword}`);
+                res.json(data);
+            }
+        // 转发数据到客户端
+            
+    } catch (error) {
+        console.error('Error fetching data:', error);
+        res.status(500).send('Error fetching data');
+    }
+});
+
+app.get('/user', async (req, res) => {
+    // 从查询参数中获取参数
+    const { mid } = req.query; // 假设你要传递的参数名为 'param'
+
+    if (!mid) {
+        return res.status(400).send('Missing parameter: mid');
+    }
+
+    try {
+        // 使用参数构建 API 请求
+         //const cookies = await getCookies();
+            if (COOKIES) {
+                data = await accessWithCookies(COOKIES,`${API_USER_URL}?mid=${mid}`);
                 const now = new Date();
 
             // 格式化时间为 YYYY-MM-DD HH:mm:ss
                  const formattedDate = now.toISOString().replace('T', ' ').substring(0, 19).replace(/-/g, '-');
 
             // 输出到控制台
-                console.log(`搜索 当前时间：${formattedDate}  `+`${keyword}`);
+                console.log(`用户查询 当前时间：${formattedDate}  `+`${mid}`);
                 res.json(data);
             }
         // 转发数据到客户端
