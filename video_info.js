@@ -91,8 +91,10 @@ app.get('/search', async (req, res) => {
          //const cookies = await getCookies();
             if (COOKIES) {
                 const buffer_text = Buffer.from(keyword, 'latin1');
+                //console.log(keyword);
 
-                const correct_keyword = buffer_text.toString('utf8');
+                //const correct_keyword = decodeURIComponent(buffer_text);
+                const correct_keyword = keyword;
                 data = await accessWithCookies(COOKIES,`${API_SEARCH_URL}?keyword=${correct_keyword}&search_type=video`);
                 const now = new Date();
 
