@@ -53,7 +53,7 @@ console.log(getCookies());
 // 创建一个路由来处理请求
 app.get('/view', async (req, res) => {
     // 从查询参数中获取参数
-    const { bvid } = req.query; // 假设你要传递的参数名为 'param'
+    const { bvid , version } = req.query; // 假设你要传递的参数名为 'param'
 
     if (!bvid) {
         return res.status(400).send('Missing parameter: bvid');
@@ -63,13 +63,16 @@ app.get('/view', async (req, res) => {
         // 使用参数构建 API 请求
         const response = await axios.get(`${API_INFO_URL}?bvid=${bvid}`);
         // 转发数据到客户端
-            const now = new Date();
+        const now = new Date();
 
-            // 格式化时间为 YYYY-MM-DD HH:mm:ss
-            const formattedDate = now.toISOString().replace('T', ' ').substring(0, 19).replace(/-/g, '-');
-
+        // 格式化时间为 YYYY-MM-DD HH:mm:ss
+        const formattedDate = now.toISOString().replace('T', ' ').substring(0, 19).replace(/-/g, '-');
+        if(version){
+            console.log(`视频信息 当前时间：${formattedDate}  `+`${bvid}`+` 版本：${version}`);
+        }else{
             // 输出到控制台
             console.log(`视频信息 当前时间：${formattedDate}  `+`${bvid}`);
+        }
         res.json(response.data);
     } catch (error) {
         console.error('Error fetching data:', error);
