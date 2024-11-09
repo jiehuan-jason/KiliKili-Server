@@ -52,13 +52,16 @@ app.get('/', (req, res) => {
                     title: item.title
                 };
             });
-            res.json(result);
+            res.json({
+                code: 0,
+                data: result
+            });
         } else {
-            res.status(400).json({ error: "数据格式不正确，无法提取 bvid 和 title" });
+            res.status(400).json({ code: -400, error: "数据格式不正确，无法提取 bvid 和 title" });
         }
     } catch (error) {
         console.error("解析 JSON 时出错:", error);
-        res.status(500).json({ error: "服务器内部错误" });
+        res.status(500).json({ code: -400, error: "服务器内部错误" });
     }
 });
 
