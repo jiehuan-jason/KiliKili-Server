@@ -83,7 +83,7 @@ app.get('/view', async (req, res) => {
 // 创建一个路由来处理请求
 app.get('/search', async (req, res) => {
     // 从查询参数中获取参数
-    const { keyword } = req.query; // 假设你要传递的参数名为 'param'
+    const { keyword , page } = req.query; // 假设你要传递的参数名为 'param'
 
     if (!keyword) {
         return res.status(400).send('Missing parameter: keyword');
@@ -98,7 +98,14 @@ app.get('/search', async (req, res) => {
 
                 //const correct_keyword = decodeURIComponent(buffer_text);
                 const correct_keyword = keyword;
-                data = await accessWithCookies(COOKIES,`${API_SEARCH_URL}?keyword=${correct_keyword}&search_type=video`);
+
+                if (page) {
+                    data = await accessWithCookies(COOKIES,`${API_SEARCH_URL}?keyword=${correct_keyword}&page=${page}&search_type=video`);
+                }else{
+                    data = await accessWithCookies(COOKIES,`${API_SEARCH_URL}?keyword=${correct_keyword}&search_type=video`);
+                }
+
+                
                 const now = new Date();
 
             // 格式化时间为 YYYY-MM-DD HH:mm:ss
