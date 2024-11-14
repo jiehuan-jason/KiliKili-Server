@@ -10,6 +10,7 @@ const PORT = 3000;
 const API_INFO_URL = 'https://api.bilibili.com/x/web-interface/view'; // 替换为实际的 API URL
 const API_SEARCH_URL = 'https://api.bilibili.com/x/web-interface/search/type';
 const API_USER_URL = 'https://api.bilibili.com/x/web-interface/card';
+const API_USER_VIDEO_URL = 'https://app.bilibili.com/x/v2/space/archive/cursor'
 
 const COOKIES = [
     ];
@@ -68,10 +69,10 @@ app.get('/view', async (req, res) => {
         // 格式化时间为 YYYY-MM-DD HH:mm:ss
         const formattedDate = now.toISOString().replace('T', ' ').substring(0, 19).replace(/-/g, '-');
         if(version){
-            console.log(`视频信息 当前时间：${formattedDate}  `+`${bvid}`+` 版本：${version}`);
+            console.log(`视频信息 当前UTC时间：${formattedDate}  `+`${bvid}`+` 版本：${version}`);
         }else{
             // 输出到控制台
-            console.log(`视频信息 当前时间：${formattedDate}  `+`${bvid}`);
+            console.log(`视频信息 当前UTC时间：${formattedDate}  `+`${bvid}`);
         }
         res.json(response.data);
     } catch (error) {
@@ -114,7 +115,7 @@ app.get('/search', async (req, res) => {
                 
 
             // 输出到控制台
-                console.log(`搜索 当前时间：${formattedDate}  `+`${correct_keyword}`);
+                console.log(`搜索 当前UTC时间：${formattedDate}  `+`${correct_keyword}`);
                 res.json(data);
             }
         // 转发数据到客户端
@@ -144,8 +145,43 @@ app.get('/user', async (req, res) => {
                  const formattedDate = now.toISOString().replace('T', ' ').substring(0, 19).replace(/-/g, '-');
 
             // 输出到控制台
-                console.log(`用户查询 当前时间：${formattedDate}  `+`${mid}`);
+                console.log(`用户查询 当前UTC时间：${formattedDate}  `+`${mid}`);
                 res.json(data);
+            }
+        // 转发数据到客户端
+            
+    } catch (error) {
+        console.error('Error fetching data:', error);
+        res.status(500).send('Error fetching data');
+    }
+});
+
+app.get('/user/video', async (req, res) => {
+    // 从查询参数中获取参数
+    const { mid } = req.query; // 假设你要传递的参数名为 'param'
+
+    if (!mid) {
+        return res.status(400).send('Missing parameter: mid');
+    }
+
+    try {
+        // 使用参数构建 API 请求
+         //const cookies = await getCookies();
+            if (COOKIES) {
+                data = await accessWithCookies(COOKIES,`${API_USER_VIDEO_URL}?vmid=${mid}`);
+                const now = new Date();
+
+                const result = data.data.item.map(item => ({
+                    title: item.title,
+                    bvid: item.bvid
+                }));
+
+            // 格式化时间为 YYYY-MM-DD HH:mm:ss
+                 const formattedDate = now.toISOString().replace('T', ' ').substring(0, 19).replace(/-/g, '-');
+
+            // 输出到控制台
+                console.log(`用户视频查询 当前UTC时间：${formattedDate}  `+`${mid}`);
+                res.json(result);
             }
         // 转发数据到客户端
             
