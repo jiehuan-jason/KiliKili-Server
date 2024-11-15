@@ -181,7 +181,10 @@ app.get('/user/video', async (req, res) => {
 
             // 输出到控制台
                 console.log(`用户视频查询 当前UTC时间：${formattedDate}  `+`${mid}`);
-                res.json(result);
+                res.json({
+                code: 0,
+                data: result
+            });
             }
         // 转发数据到客户端
             
