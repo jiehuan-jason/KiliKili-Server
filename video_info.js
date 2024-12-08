@@ -179,7 +179,7 @@ app.get('/user', async (req, res) => {
 
 app.get('/user/video', async (req, res) => {
     // 从查询参数中获取参数
-    const { mid } = req.query; // 假设你要传递的参数名为 'param'
+    const { mid, aid } = req.query; // 假设你要传递的参数名为 'param'
 
     if (!mid) {
         return res.status(400).send('Missing parameter: mid');
@@ -189,12 +189,18 @@ app.get('/user/video', async (req, res) => {
         // 使用参数构建 API 请求
          //const cookies = await getCookies();
             if (COOKIES) {
-                data = await accessWithCookies(COOKIES,`${API_USER_VIDEO_URL}?vmid=${mid}`);
+                if(aid){
+                    data = await accessWithCookies(COOKIES,`${API_USER_VIDEO_URL}?vmid=${mid}&aid=${aid}`);
+                }else{
+                    data = await accessWithCookies(COOKIES,`${API_USER_VIDEO_URL}?vmid=${mid}`);
+                }
+                
                 const now = new Date();
 
                 const result = data.data.item.map(item => ({
                     title: item.title,
-                    bvid: item.bvid
+                    bvid: item.bvid,
+                    param: item.param
                 }));
 
             // 格式化时间为 YYYY-MM-DD HH:mm:ss
