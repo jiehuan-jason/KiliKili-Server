@@ -1,7 +1,7 @@
 // JavaScript source code
 // 引入所需模块
-const express = require('express');
-const axios = require('axios');
+import express from 'express';
+import axios from 'axios';
 
 const app = express();
 const PORT = 3000;
@@ -15,6 +15,18 @@ const API_VIDEOS_LIST_URL = 'https://api.bilibili.com/x/player/pagelist';
 
 const COOKIES = [
     ];
+
+const publicKey = await crypto.subtle.importKey(
+  "jwk",
+  {
+    kty: "RSA",
+    n: "y4HdjgJHBlbaBN04VERG4qNBIFHP6a3GozCl75AihQloSWCXC5HDNgyinEnhaQ_4-gaMud_GF50elYXLlCToR9se9Z8z433U3KjM-3Yx7ptKkmQNAMggQwAVKgq3zYAoidNEWuxpkY_mAitTSRLnsJW-NCTa0bqBFF6Wm1MxgfE",
+    e: "AQAB",
+  },
+  { name: "RSA-OAEP", hash: "SHA-256" },
+  true,
+  ["encrypt"],
+)
 
 async function getCookies() {
     try {
@@ -220,6 +232,38 @@ app.get('/user/video', async (req, res) => {
         res.status(500).send('Error fetching data');
     }
 });
+
+app.get('/timestamp', async (req, res) => {
+    // 从查询参数中获取参数
+    const { t } = req.query; // 假设你要传递的参数名为 'param'
+
+    if (!t) {
+        return res.status(400).send('Missing parameter: t');
+    }
+
+    try {
+
+        // 使用参数构建 API 请求
+         //const cookies = await getCookies();
+            var hash = await getCorrespondPath(t);
+            // 输出到控制台
+            res.json({
+                code: 0,
+                hash: hash
+            });
+        // 转发数据到客户端
+            
+    } catch (error) {
+        console.error('Error fetching data:', error);
+        res.status(500).send('Error fetching data');
+    }
+});
+
+async function getCorrespondPath(timestamp) {
+  const data = new TextEncoder().encode(`refresh_${timestamp}`);
+  const encrypted = new Uint8Array(await crypto.subtle.encrypt({ name: "RSA-OAEP" }, publicKey, data))
+  return encrypted.reduce((str, c) => str + c.toString(16).padStart(2, "0"), "")
+}
 
 // 启动服务器
 app.listen(PORT, () => {

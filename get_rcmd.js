@@ -1,5 +1,6 @@
 const express = require('express');
 const axios = require('axios');
+const https = require('https');
 const cron = require('node-cron');
 const fs = require('fs');
 const path = require('path');
@@ -69,3 +70,9 @@ app.get('/', (req, res) => {
 app.listen(PORT, () => {
     console.log(`Server is running on http://localhost:${PORT}`);
 });
+
+function decodeUnicode(str) {
+    return str.replace(/\\u([\dA-Fa-f]{4})/g, (match, grp) => {
+        return String.fromCharCode(parseInt(grp, 16));
+    });
+}
