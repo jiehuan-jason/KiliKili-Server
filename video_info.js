@@ -2,19 +2,36 @@
 // 引入所需模块
 import express from 'express';
 import axios from 'axios';
+import crypto from 'crypto';
+import md5 from 'md5'
+
+// Digits map as in your Rust example
+const DIGIT_MAP = [
+    "1", "2", "3", "4", "5", "6", "7", "8", "9", "A", "B", "C", "D", "E", "F", "10"
+];
 
 const app = express();
 const PORT = 3000;
 
 // 定义要获取的 API URL
 const API_INFO_URL = 'https://api.bilibili.com/x/web-interface/view'; // 替换为实际的 API URL
-const API_SEARCH_URL = 'https://api.bilibili.com/x/web-interface/search/type';
+const API_SEARCH_URL = 'https://api.bilibili.com/x/web-interface/wbi/search/all/v2';
 const API_USER_URL = 'https://api.bilibili.com/x/web-interface/card';
 const API_USER_VIDEO_URL = 'https://app.bilibili.com/x/v2/space/archive/cursor'
 const API_VIDEOS_LIST_URL = 'https://api.bilibili.com/x/player/pagelist';
 
 const COOKIES = [
     ];
+
+const mixinKeyEncTab = [
+  46, 47, 18, 2, 53, 8, 23, 32, 15, 50, 10, 31, 58, 3, 45, 35, 27, 43, 5, 49,
+  33, 9, 42, 19, 29, 28, 14, 39, 12, 38, 41, 13, 37, 48, 7, 16, 24, 55, 40,
+  61, 26, 17, 0, 1, 60, 51, 30, 4, 22, 25, 54, 21, 56, 59, 6, 63, 57, 62, 11,
+  36, 20, 34, 44, 52
+]
+
+// 对 imgKey 和 subKey 进行字符顺序打乱编码
+const getMixinKey = (orig) => mixinKeyEncTab.map(n => orig[n]).join('').slice(0, 32)
 
 const publicKey = await crypto.subtle.importKey(
   "jwk",
@@ -27,6 +44,54 @@ const publicKey = await crypto.subtle.importKey(
   true,
   ["encrypt"],
 )
+
+// 为请求参数进行 wbi 签名
+function encWbi(params, img_key, sub_key) {
+  const mixin_key = getMixinKey(img_key + sub_key),
+    curr_time = Math.round(Date.now() / 1000),
+    chr_filter = /[!'()*]/g
+
+  Object.assign(params, { wts: curr_time }) // 添加 wts 字段
+  // 按照 key 重排参数
+  const query = Object
+    .keys(params)
+    .sort()
+    .map(key => {
+      // 过滤 value 中的 "!'()*" 字符
+      const value = params[key].toString().replace(chr_filter, '')
+      return `${encodeURIComponent(key)}=${encodeURIComponent(value)}`
+    })
+    .join('&')
+
+  const wbi_sign = md5(query + mixin_key) // 计算 w_rid
+
+  return query + '&w_rid=' + wbi_sign
+}
+
+// 获取最新的 img_key 和 sub_key
+async function getWbiKeys() {
+  const res = await fetch('https://api.bilibili.com/x/web-interface/nav', {
+    headers: {
+      // SESSDATA 字段
+      Cookie: COOKIES,
+      'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/58.0.3029.110 Safari/537.3',
+      Referer: 'https://www.bilibili.com/'//对于直接浏览器调用可能不适用
+    }
+  })
+  const { data: { wbi_img: { img_url, sub_url } } } = await res.json()
+
+  return {
+    img_key: img_url.slice(
+      img_url.lastIndexOf('/') + 1,
+      img_url.lastIndexOf('.')
+    ),
+    sub_key: sub_url.slice(
+      sub_url.lastIndexOf('/') + 1,
+      sub_url.lastIndexOf('.')
+    )
+  }
+}
+
 
 async function getCookies() {
     try {
@@ -117,13 +182,17 @@ app.get('/list', async (req, res) => {
 // 创建一个路由来处理请求
 app.get('/search', async (req, res) => {
     // 从查询参数中获取参数
-    const { keyword , page } = req.query; // 假设你要传递的参数名为 'param'
+    var { keyword , page } = req.query; // 假设你要传递的参数名为 'param'
 
     if (!keyword) {
         return res.status(400).send('Missing parameter: keyword');
     }
+    if(!page) {
+        page = 1;
+    }
 
     try {
+        const web_keys = await getWbiKeys()
         // 使用参数构建 API 请求
          //const cookies = await getCookies();
             if (COOKIES) {
@@ -134,9 +203,12 @@ app.get('/search', async (req, res) => {
                 const correct_keyword = keyword;
 
                 if (page) {
-                    data = await accessWithCookies(COOKIES,`${API_SEARCH_URL}?keyword=${correct_keyword}&page=${page}&search_type=video`);
-                }else{
-                    data = await accessWithCookies(COOKIES,`${API_SEARCH_URL}?keyword=${correct_keyword}&search_type=video`);
+                    const params = {keyword:correct_keyword, page:page, search_type:"video"},
+                        img_key = web_keys.img_key,
+                        sub_key = web_keys.sub_key
+                    const query = encWbi(params, img_key, sub_key);
+                    console.log(query);
+                    var data = await accessWithCookies(COOKIES,`${API_SEARCH_URL}?${query}`);
                 }
 
                 
@@ -170,6 +242,7 @@ app.get('/user', async (req, res) => {
     try {
         // 使用参数构建 API 请求
          //const cookies = await getCookies();
+        var data = "";
             if (COOKIES) {
                 data = await accessWithCookies(COOKIES,`${API_USER_URL}?mid=${mid}`);
                 const now = new Date();
@@ -200,6 +273,7 @@ app.get('/user/video', async (req, res) => {
     try {
         // 使用参数构建 API 请求
          //const cookies = await getCookies();
+        var data="";
             if (COOKIES) {
                 if(aid){
                     data = await accessWithCookies(COOKIES,`${API_USER_VIDEO_URL}?vmid=${mid}&aid=${aid}`);
@@ -259,11 +333,58 @@ app.get('/timestamp', async (req, res) => {
     }
 });
 
+app.get('/uuid', async (req, res) => {
+    try {
+
+        // 使用参数构建 API 请求
+         //const cookies = await getCookies();
+            var uuid = gen();
+            // 输出到控制台
+            res.json({
+                code: 0,
+                uuid: uuid
+            });
+        // 转发数据到客户端
+            
+    } catch (error) {
+        console.error('Error fetching data:', error);
+        res.status(500).send('Error fetching data');
+    }
+});
+
 async function getCorrespondPath(timestamp) {
   const data = new TextEncoder().encode(`refresh_${timestamp}`);
   const encrypted = new Uint8Array(await crypto.subtle.encrypt({ name: "RSA-OAEP" }, publicKey, data))
   return encrypted.reduce((str, c) => str + c.toString(16).padStart(2, "0"), "")
 }
+
+// Function to generate a UUID-like string
+function gen() {
+    const t = Date.now() % 100000; // Get current time in milliseconds, mod 100000
+
+    // Generate random parts of the UUID
+    const part1 = randomChoice(8);
+    const part2 = randomChoice(4);
+    const part3 = randomChoice(4);
+    const part4 = randomChoice(4);
+    const part5 = randomChoice(12);
+
+    // Format and return the UUID
+    return `${part1}-${part2}-${part3}-${part4}-${part5}${String(t).padStart(5, '0')}infoc`;
+}
+
+// Function to generate a random string of given length from DIGIT_MAP
+function randomChoice(length) {
+    let result = '';
+    for (let i = 0; i < length; i++) {
+        result += DIGIT_MAP[Math.floor(Math.random() * DIGIT_MAP.length)];
+    }
+    return result;
+}
+
+// Test the function
+console.log(gen());
+
 
 // 启动服务器
 app.listen(PORT, () => {
